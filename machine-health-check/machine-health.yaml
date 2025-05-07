@@ -10,7 +10,6 @@ spec:
   selector:
     matchLabels:
       cluster.x-k8s.io/cluster-name: febri4n-capi-k0smotron
-      #cluster.x-k8s.io/deployment-name: febri4n-nyoba-capi-kamaji-worker
   unhealthyConditions:
     - type: Ready
       status: Unknown
