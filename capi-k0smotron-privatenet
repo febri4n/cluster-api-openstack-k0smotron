@@ -1,0 +1,172 @@
+apiVersion: v1
+data:
+  cacert: Cg==
+  clouds.yaml: #BASE64 ENCODE
+kind: Secret
+metadata:
+  labels:
+    clusterctl.cluster.x-k8s.io/move: "true"
+  name: febri4n-capi-k0smotron-cloud-config
+  namespace: default
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: febri4n-capi-k0smotron
+  namespace: default
+spec:
+  clusterNetwork:
+    serviceDomain: cluster.local
+    pods:
+      cidrBlocks:
+      - 10.244.0.0/16
+    services:
+      cidrBlocks:
+      - 10.96.0.0/12
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+    kind: K0smotronControlPlane
+    name: febri4n-capi-k0smotron-cp
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: OpenStackCluster
+    name: febri4n-capi-k0smotron-openstack
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: K0smotronControlPlane
+metadata:
+  name: febri4n-capi-k0smotron-cp
+spec:
+  image: k0sproject/k0s
+  version: v1.30.12-k0s.0
+  replicas: 1
+  k0sConfig:
+    apiVersion: k0s.k0sproject.io/v1beta1
+    kind: ClusterConfig
+    metadata:
+      name: febri4n-capi-k0smotron-cluster-config
+    spec:
+      network:
+        provider: calico
+        podCIDR: "10.244.0.0/16"
+        serviceCIDR: "10.96.0.0/12"
+  service:
+    type: LoadBalancer
+    apiPort: 6443
+    konnectivityPort: 8132
+  persistence:
+    type: pvc
+    autoDeletePVCs: true
+    persistentVolumeClaim:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+      spec:
+        storageClassName: nfs-client
+        accessModes:
+          - ReadWriteOnce
+        volumeMode: Filesystem
+        resources:
+          requests:
+            storage: 1Gi
+  etcd:
+    autoDeletePVCs: true
+    persistence:
+      size: 1Gi
+      storageClass: nfs-client
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: OpenStackCluster
+metadata:
+  name: febri4n-capi-k0smotron-openstack
+  namespace: default
+spec:
+  apiServerLoadBalancer:
+    enabled: false
+  controlPlaneAvailabilityZones:
+    - AZ_Public01_JBBK
+  disableAPIServerFloatingIP: true
+  disableExternalNetwork: true
+  apiServerFixedIP: ""
+  network:
+    id: be41111f-1ab3-4580-807b-5890c51f32ab
+  subnets:
+  - id: 69a37870-2c2e-453f-a71a-67595bf52367
+  identityRef:
+    cloudName: openstack
+    name: febri4n-capi-k0smotron-cloud-config
+  managedSecurityGroups:
+    allowAllInClusterTraffic: false
+    allNodesSecurityGroupRules:
+    - remoteManagedGroups:
+      - worker
+      direction: ingress
+      etherType: IPv4
+      name: BGP
+      portRangeMin: 179
+      portRangeMax: 179
+      protocol: "tcp"
+      description: "Allow BGP among Workers"
+    - remoteManagedGroups:
+      - worker
+      direction: ingress
+      etherType: IPv4
+      name: IP-in-IP
+      protocol: "4"
+      description: "Allow IP-in-IP among Workers"
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name:  febri4n-capi-k0smotron-md
+  namespace: default
+spec:
+  clusterName: febri4n-capi-k0smotron
+  replicas: 1
+  template:
+    spec:
+      clusterName: febri4n-capi-k0smotron
+      failureDomain: AZ_Public01_JBBK
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: K0sWorkerConfigTemplate
+          name: febri4n-capi-k0smotron
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: OpenStackMachineTemplate
+        name: febri4n-capi-k0smotron
+      version: 1.30.12
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: K0sWorkerConfigTemplate
+metadata:
+  name: febri4n-capi-k0smotron
+  namespace: default
+spec:
+  template:
+    spec:
+      version: v1.30.12+k0s.0
+      args:
+        - --enable-cloud-provider
+        - --kubelet-extra-args="--cloud-provider=external"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: OpenStackMachineTemplate
+metadata:
+  name: febri4n-capi-k0smotron
+  namespace: default
+spec:
+  template:
+    spec:
+      flavor: GP.2C4G-intel
+      identityRef:
+        cloudName: openstack 
+        name: febri4n-capi-k0smotron-cloud-config
+      image:
+        filter:
+          name: "Ubuntu 22.04 LTS"
+      sshKeyName: febri4n
+      ports:
+      - network:
+          id: be41111f-1ab3-4580-807b-5890c51f32ab

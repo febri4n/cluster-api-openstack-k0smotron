@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cpu-stress
+  labels:
+    app: cpu-stress
+spec:
+  replicas: 1 # ganti ini ke 50 untuk testing
+  selector:
+    matchLabels:
+      app: cpu-stress
+  template:
+    metadata:
+      labels:
+        app: cpu-stress
+    spec:
+      containers:
+      - name: stress
+        image: vish/stress
+        resources:
+          limits:
+            cpu: "500m"
+          requests:
+            cpu: "200m"
+        args:
+        - -cpus
+        - "2"

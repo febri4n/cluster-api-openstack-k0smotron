@@ -1,0 +1,36 @@
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name:  febri4n-capi-k0smotron-md-upgrade
+  namespace: default
+spec:
+  clusterName: febri4n-capi-k0smotron
+  replicas: 1
+  template:
+    spec:
+      clusterName: febri4n-capi-k0smotron
+      failureDomain: AZ_Public01_JBBK
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: K0sWorkerConfigTemplate
+          name: febri4n-capi-k0smotron-upgrade
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: OpenStackMachineTemplate
+        name: febri4n-capi-k0smotron
+      version: 1.31.8
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: K0sWorkerConfigTemplate
+metadata:
+  name: febri4n-capi-k0smotron-upgrade
+  namespace: default
+spec:
+  template:
+    spec:
+      version: v1.31.8+k0s.0
+      args:
+        - --enable-cloud-provider
+        - --kubelet-extra-args="--cloud-provider=external"

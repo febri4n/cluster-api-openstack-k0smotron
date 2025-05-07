@@ -1,0 +1,33 @@
+apiVersion: k0smotron.io/v1beta1
+kind: Cluster
+metadata:
+  name: ngetest-k0smotron-nodeport
+spec:
+  externalAddress: "38.47.91.40"
+  replicas: 1
+  image: k0sproject/k0s
+  version: v1.30.12-k0s.0
+  service:
+    type: NodePort
+    apiPort: 30443
+    konnectivityPort: 30132
+  persistence:
+    type: pvc
+    autoDeletePVCs: true
+    persistentVolumeClaim:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+      spec:
+        storageClassName: nfs-client
+        accessModes:
+          - ReadWriteOnce
+        volumeMode: Filesystem
+        resources:
+          requests:
+            storage: 1Gi
+  etcd:
+    autoDeletePVCs: true
+    persistence:
+      size: 1Gi
+      storageClass: nfs-client

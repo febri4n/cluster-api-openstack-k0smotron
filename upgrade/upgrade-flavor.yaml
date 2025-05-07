@@ -1,0 +1,19 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: OpenStackMachineTemplate
+metadata:
+  name: febri4n-capi-k0smotron-upgrade-flavor
+  namespace: default
+spec:
+  template:
+    spec:
+      flavor: GP.4C8G-intel
+      identityRef:
+        cloudName: openstack 
+        name: febri4n-capi-k0smotron-cloud-config
+      image:
+        filter:
+          name: "Ubuntu 22.04 LTS"
+      sshKeyName: febri4n
+      ports:
+      - network:
+          id: f9881508-7de0-488e-a4ff-c437f4c8687f
